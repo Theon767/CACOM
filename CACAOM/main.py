@@ -13,8 +13,8 @@ from footdetector import *
     
 path_read=r'C:\Users\m1380\CACAOM\Video'
 path_write=r'C:\Users\m1380\CACAOM\Image'
-filename='\\frames_150.jpg'
-video2image(path_read,path_write,'\\IMG_3997.MOV',10)
+filename='\\frames_080.jpg'
+#video2image(path_read,path_write,'\\IMG_3997.MOV',10)
 file=path_write+filename
 print(file)
 image=cv2.imread(file)
@@ -22,7 +22,7 @@ image=cv2.imread(file)
 
 #foot_image=footdetector(path_write,filename,threshold=10)
 keypoints=dotdetector(path_write,filename,minArea=60)
-max_contour=footdetector(path_write,filename,ksize=(5,5))
+max_contour=footdetector(path_write,filename,ksize1=(9,9),ksize2=(3,3))
 
 new_keypoints=crosscompare(max_contour,keypoints)
 #new_keypoints=keypoints

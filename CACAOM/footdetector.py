@@ -7,13 +7,13 @@ Detection of foot
 """
 import cv2
 import numpy as np
-def footdetector(path,filename,ksize=(35,35)):
+def footdetector(path,filename,ksize1=(9,9),ksize2=(5,5)):
     file=path+filename
     image=cv2.imread(file)
     im_bw = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-    im_bw=cv2.GaussianBlur(im_bw, (9,9), 0)
+    im_bw=cv2.GaussianBlur(im_bw, ksize1, 0)
     im_bw = cv2.Canny(im_bw, 10, 90)
-    im_bw=cv2.GaussianBlur(im_bw, ksize, 0)
+    im_bw=cv2.GaussianBlur(im_bw, ksize2, 0)
     
     
     
