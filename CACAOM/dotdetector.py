@@ -33,8 +33,8 @@ def dotdetector(path_read,filename,minArea):#Detect Blob features
     #blank = np.zeros((1, 1))
     #blobs = cv2.drawKeypoints(image, keypoints, blank, (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
 
-def crosscompare(foot_image,keypoints,size):
-    N=len(keypoints) #used to ensure that Blob features lie on foot
+def crosscompare(contour,keypoints):
+    '''    N=len(keypoints) #used to ensure that Blob features lie on foot
     print(N)
     new_keypoints=keypoints
     for i in range(N):
@@ -52,7 +52,15 @@ def crosscompare(foot_image,keypoints,size):
             new_keypoints[i]=0
             #print('yes')
             #print(keypoints)
-    new_keypoints= [i for i in new_keypoints if i != 0]
+    new_keypoints= [i for i in new_keypoints if i != 0]'''
+    N=len(keypoints)
+    new_keypoints=keypoints
+    for i in range(N):
+        (x,y) = keypoints[i].pt
+        result = cv2.pointPolygonTest(contour, (x,y), False)
+        if result==1 or result==0:
+            new_keypoints[i]=0
+    new_keypoints=[i for i in new_keypoints if i != 0]
     return new_keypoints
             
             
