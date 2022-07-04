@@ -10,12 +10,11 @@ import numpy as np
 
 
 def dotdetector(path_read,filename,minArea,maxArea,Convexity,Inertia):#Detect Blob features
-    #path_read=r'C:\Users\m1380\CACAOM\Image'
-    #defalut minArea=70
+
     file=path_read+filename
     image = cv2.imread(file)
     image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)  
-    #image = cv2.Canny(image, 10, 90)
+    #image = cv2.Canny(image, 10, 90) #perform Canny before blob detection
     params = cv2.SimpleBlobDetector_Params()
     
     #change thresholds
@@ -27,16 +26,16 @@ def dotdetector(path_read,filename,minArea,maxArea,Convexity,Inertia):#Detect Bl
     params.minArea = minArea
     params.maxArea=maxArea
     
-    # Filter by Circularity
+    # Filter by Circularity(whether it is Polygon or circle)
     params.filterByCircularity = True
     params.minCircularity = 0.1
     
-    # Filter by Convexity
+    # Filter by Convexity(Integrity of circle)
     params.filterByConvexity = True
     params.minConvexity = Convexity
 
 
-    # Filter by Inertia
+    # Filter by Inertia(wheter it is elipse or circle)
     params.filterByInertia = True
     params.minInertiaRatio =Inertia
 
@@ -52,13 +51,13 @@ def crosscompare(contour,keypoints,threshold=100):
     new_keypoints=keypoints
     for i in range(N):
         (x,y) = keypoints[i].pt
-        dst = cv2.pointPolygonTest(contour, (x,y), True)
+        dst = cv2.pointPolygonTest(contour, (x,y), True) #Result is the distance between points and biggest contour
         if dst>=threshold:
-            new_keypoints[i]=0
-    new_keypoints=[i for i in new_keypoints if i != 0]
+            new_keypoints[i]=0 #decide whether the point is close enough to contour
+    new_keypoints=[i for i in new_keypoints if i != 0] 
     return new_keypoints
 
-def select (keypoints):#used to eliminate points which are more than 6 points
+def select (keypoints):#used to eliminate points which are more than 6 points,choose the left 6 points(just a Siliy function)
     N=len(keypoints)
     position=[]
     new_keypoints=keypoints
