@@ -13,6 +13,8 @@ def footdetector(path,filename,ksize1=(9,9),ksize2=(3,3)):
     im_bw = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
     im_bw=cv2.GaussianBlur(im_bw, ksize1, 0)
     im_bw = cv2.Canny(im_bw, 10, 90)
+    #cv2.imshow('canny',im_bw)
+    cv2.waitKey()
     im_bw=cv2.GaussianBlur(im_bw, ksize2, 0)
     
     
