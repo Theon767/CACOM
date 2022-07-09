@@ -6,11 +6,15 @@ import math
 def find_points(point_list):
     point_sort = []
 
-    point_list.sort()
-
+    point_list = sorted(point_list)
+    p5 = point_list[4]
+    p6 = point_list[5]
     point_sort.append(point_list[3])
     point_sort.append(point_list[0])
-    point_sort.append(point_list[5])
+    if p6[1] < p5[1]:
+        point_sort.append(point_list[5])
+    else:
+        point_sort.append(point_list[4])
     return point_sort
 
 
