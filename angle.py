@@ -11,7 +11,7 @@ def find_points(point_list):
     p6 = point_list[5]
     point_sort.append(point_list[3])
     point_sort.append(point_list[0])
-    if p6[1] < p5[1]:
+    if p6[1] > p5[1]:
         point_sort.append(point_list[5])
     else:
         point_sort.append(point_list[4])
