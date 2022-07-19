@@ -6,15 +6,11 @@ import math
 def find_points(point_list):
     point_sort = []
 
-    point_list = sorted(point_list)
-    p5 = point_list[4]
-    p6 = point_list[5]
+    point_list.sort()
+
     point_sort.append(point_list[3])
     point_sort.append(point_list[0])
-    if p6[1] > p5[1]:
-        point_sort.append(point_list[5])
-    else:
-        point_sort.append(point_list[4])
+    point_sort.append(point_list[5])
     return point_sort
 
 
@@ -57,36 +53,16 @@ all_points = [[(1315.011474609375, 406.929443359375),
                (986.1935424804688, 757.182861328125),
                (1302.7919921875, 827.3223876953125),
                (736.1265869140625, 837.8878784179688)]]
+def return_angle(points_coordinate):
+    
+    
+    point_4 = points_coordinate[1]
+    point_3 = points_coordinate[0]
+    point_6 = points_coordinate[2]
+    
+    # 计算对应边长
+    edge_34 = euclidean_distance(point_3, point_4)
+    edge_36 = euclidean_distance(point_3, point_6)
+    edge_46 = euclidean_distance(point_4, point_6)
+    return angle(edge_34, edge_36, edge_46)
 
-# main
-angles_change = []  # output angle_list
-# 视频一共多少帧
-nums_frames = len(all_points)
-for k in range(nums_frames):
-    # 初始化三边长为0，以及三个点为0
-    edge_34, edge_36, edge_46 = 0, 0, 0
-    point_3, point_4, point_6 = 0, 0, 0
-    numbers_points = 0
-
-    # 判断第k帧里面是否为6个点
-    points_perFrames = len(all_points[k])
-    # 只处理6个点都完整检测到的帧
-    if points_perFrames == 6:  # 如果不是6个点，会影响到点的排序
-        # 找到436， 三个点
-        points_coordinate = find_points(all_points[k])
-
-        point_4 = points_coordinate[0]
-        point_3 = points_coordinate[1]
-        point_6 = points_coordinate[2]
-
-        # 计算对应边长
-        edge_34 = euclidean_distance(point_3, point_4)
-        edge_36 = euclidean_distance(point_3, point_6)
-        edge_46 = euclidean_distance(point_4, point_6)
-    else:
-        continue
-
-    # 添加第k帧的angle到list中
-    angles_change.append(angle(edge_34, edge_36, edge_46))
-
-print(angles_change)

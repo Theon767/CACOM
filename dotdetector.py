@@ -18,8 +18,9 @@ def dotdetector(path_read,filename,minArea,maxArea,Convexity,Inertia):#Detect Bl
     params = cv2.SimpleBlobDetector_Params()
     
     #change thresholds
-#   params.minThreshold = 10;
-#    params.maxThreshold = 200;
+    #params.filterByColor()
+    #params.minThreshold = 10;
+    #params.maxThreshold = 2000;
     
     #filter by area
     params.filterByArea = True   #setting up Blob detector
@@ -41,6 +42,7 @@ def dotdetector(path_read,filename,minArea,maxArea,Convexity,Inertia):#Detect Bl
 
     detector = cv2.SimpleBlobDetector_create(params)
     keypoints = detector.detect(image)
+    #cv2.imshow('canny',image)
     return keypoints
     #blank = np.zeros((1, 1))
     #blobs = cv2.drawKeypoints(image, keypoints, blank, (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
