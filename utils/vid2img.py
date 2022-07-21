@@ -19,8 +19,17 @@ from os.path import join, isdir
 import cv2 as cv
 import shutil
 
-v_path = "/home/kolz14w/下载/IMG_4816.MOV"
+v_path = "/home/kolz14w/下载/2022_07_06_14_03_IMG_4265.MOV"
 i_path = "/home/kolz14w/桌面/frames"
+
+def img_normalizer(img):
+    standard_dim = [853, 480]
+    img_dim = img.shape
+    if ~(standard_dim == img_dim):
+        new_img = cv.resize(img, standard_dim, interpolation = cv.INTER_AREA)
+    else:
+        new_img = img
+    return new_img
 
 def vid_2_img(v_path, i_path):
     
@@ -35,8 +44,9 @@ def vid_2_img(v_path, i_path):
     num_frame = int(vc.get(7))       # get the total number of frames in the selected video
     for i in range(num_frame-1):
         rval, frame = vc.read()
+        new_frame = img_normalizer(frame)   # resize frames to 853, 480 in order to fit mask-rcnn
         c += 1
-        cv.imwrite('frame'+str(c)+'.jpg', frame)
+        cv.imwrite('frame%04d.jpg'%i, new_frame)
         
     # move frames to the target folder
     current_path = getcwd()

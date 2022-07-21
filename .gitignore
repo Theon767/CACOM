@@ -1,4 +1,10 @@
+<<<<<<< HEAD
 /dataset/
 /detectron2_repo/
 /output/
 
+=======
+/detectron2_repo/
+/output/
+/dataset/
+>>>>>>> detectron2 extract foot
