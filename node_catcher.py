@@ -4,7 +4,7 @@ Spyder Editor
 
 This is a temporary script file.
 """
-
+from matplotlib import pyplot as plt
 from functools import partial
 import detectron2
 from detectron2.utils.logger import setup_logger
@@ -56,8 +56,8 @@ def Init_Save_Cfg(**kwargs):
     else:
         cfg.MODEL.WEIGHTS = default_model_path
     cfg.SOLVER.IMS_PER_BATCH = 2
-    cfg.SOLVER.BASE_LR = 0.0001
-    cfg.SOLVER.MAX_ITER = 300 # 300 iterations seems good enough, but you can certainly train longer
+    cfg.SOLVER.BASE_LR = 0.0005
+    cfg.SOLVER.MAX_ITER = 1000 # 300 iterations seems good enough, but you can certainly train longer
     cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 64   # faster, and good enough for this toy dataset
     if 'num_categories' in kwargs.keys():
         cfg.MODEL.ROI_HEADS.NUM_CLASSES = kwargs['num_categories']
@@ -230,10 +230,10 @@ def data_reg(dataset_name, dataset_path):
     DatasetCatalog.clear()
     MetadataCatalog.clear()
     DatasetCatalog.register(dataset_name, partial(dexycb_hand_seg_func_mivos,
-                                                 num_samples = 10,
+                                                 num_samples = 20,
                                                  ignore_background=True,
                                                  data_dir = dataset_path,
-                                                 step_size = 2))
+                                                 step_size = 3))
 
 class Detectron2Wrapper:
     
@@ -293,17 +293,21 @@ def eval_mivos(input_image, original_mask, det):
         plt.show()
         
     # return pred_mask, orig_mask_array
-
-cfg = Init_Save_Cfg(# cfg_path="/home/kolz14w/haucode/hw2/cfghw2_2_jup.yaml",
-                    model_path = "/home/kolz14w/Proj_Master/CAOCM/CACOM/output/model_final.pth",
-                    num_categories=1)
+if 'cfg' in dir():
+    print('Configuration has been initialized!')
+    print("Skip configuration settings!")
+else:
+    print("Start initializing configuration for Detectron2")
+    cfg = Init_Save_Cfg(# cfg_path="/home/kolz14w/haucode/hw2/cfghw2_2_jup.yaml",
+                        model_path = "/home/kolz14w/Proj_Master/CAOCM/CACOM/output/model_final.pth",
+                        num_categories=1)
 
 # cfg = get_cfg()
 # cfg.merge_from_file('cfghw2_2_jup.yaml')
 
 # Set expected object classes
 OBJ_CLASSES = {
-    0: '00_Points'
+    0: '00_Foot'
 }
 
 INV_OBJ_CATEGORIES = {v: k for k,v in OBJ_CLASSES.items()}
@@ -315,27 +319,29 @@ def Model_training(cfg):
     trainer.train()
     return trainer
 
-data_reg("Mivos", '/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset')
+# data_reg("Mivos", '/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset')
 
 # print('Training start.')
 
 # Model_training(cfg)
 
-print('Initializing Detectron2Wrapper.')
+if 'det' in locals().keys():
+    print('Detectron2Wrapper is already initialized')
+else:
+    print('Initializing Detectron2Wrapper.')    
+    det = Detectron2Wrapper(# cfg_path="/home/kolz14w/Proj_Master/haucode/hw2/cfghw2_2_jup.yaml",
+                            model_path = "/home/kolz14w/Proj_Master/CAOCM/CACOM/output/model_final.pth"
+                            )
 
-det = Detectron2Wrapper(# cfg_path="/home/kolz14w/Proj_Master/haucode/hw2/cfghw2_2_jup.yaml",
-                        model_path = "/home/kolz14w/Proj_Master/CAOCM/CACOM/output/model_final.pth"
-                        )
+# print('Initializing Visualizer.')
 
-print('Initializing Visualizer.')
+test_path="/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset/images/frame0001.jpg"
 
-test_path="dataset/images/frame0004jpg"
-
-init_visualizer(det, test_path)
+# init_visualizer(det, test_path)
 
 
 
-# ###########################3 compare the difference ###########################
+# ############################ compare the difference ###########################
 
 # img_test = cv2.imread('mask_rcnn/Mivos_cus/images/frame0006.jpg')
 # mask_test = cv2.imread('mask_rcnn/Mivos_cus/mask/00006.png')
@@ -343,9 +349,91 @@ init_visualizer(det, test_path)
 # eval_mivos(img_test, mask_test, det)
 
 
+############################## Mask Processing
+
+# mask for color image generation
+
+def color_mask_gen(input_img, det):
+    mask, classes = det.process(input_img)
+    color_mask = np.zeros(np.hstack([mask.shape[1:],[3]]))
+    
+    overall_mask = np.zeros(mask.shape[1:])
+    for inst in range(mask.shape[0]):
+        overall_mask = overall_mask + mask[inst,:,:]
+    
+    bool_mask = (overall_mask > 0)
+    
+    for layer in range(color_mask.shape[2]):
+        color_mask[:,:,layer] = bool_mask
+    
+    return color_mask
+
+def obj_segmentation(img, mask):
+    seg_img = (img * mask).astype('float32') / 255.0
+    gray_img = cv2.cvtColor(seg_img * 255.0, cv2.COLOR_BGR2GRAY).astype('uint8')
+    return seg_img, gray_img
+    
+test_img = cv2.imread(test_path)
+
+color_mask = color_mask_gen(test_img, det).astype('float32')
+seg_img, gray_img = obj_segmentation(test_img, color_mask)
+
+plt.imshow(seg_img)
+
+# find best parameters for blob
+def best_fit_keypoints(img, max_minArea, num_points):
+    keypoints_dict = []
+    keypoints_list = []
+    minArea_list = []
+    for i in range(1,max_minArea):
+        keypoints = dotdetector(img,i)
+        if len(keypoints) != 0:
+            keypoints_list.append(keypoints)
+            minArea_list.append(i)
+    keypoints_dict = dict(zip(minArea_list, keypoints_list))
+    num_keypoints = []
+    for i in keypoints_dict.keys():
+        num_keypoints_cur = len(keypoints_dict[i])
+        num_keypoints.append(num_keypoints_cur)
+
+    dist = abs(np.array(num_keypoints) - np.array([num_points] * len(num_keypoints)))
+    index = np.argmin(dist)
+    keypoints_with_best_fit_minArea = keypoints_dict[list(keypoints_dict.keys())[index]]
+    return keypoints_with_best_fit_minArea
+
+# define dotdetector at first to detect blob features
+def dotdetector(img,minArea):
+    img_int8 = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    img_int8 = np.copy(img_int8).astype("uint8")
+    params = cv2.SimpleBlobDetector_Params()
+    params.filterByArea = True   #setting up Blob detector
+    params.minArea = minArea
+    detector = cv2.SimpleBlobDetector_create(params)
+    keypoints = detector.detect(img_int8)
+    return keypoints
+
+# draw keypoints on original image
+def visualizer(img, keypoints):
+    blobs = cv2.drawKeypoints(img, keypoints, np.zeros((1,1)), (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    # cv2.drawContours(test_img,seg_img, -1, (0,255,0), 3)
+
+    cv2.imshow('blobs',blobs)
+    key = cv2.waitKey(-1)
+    if key == 27:
+        cv2.destroyAllWindows()
+
+# draw point distribution on foot
+def find_marker(keypoints, visualize = True):
+    blobs = cv2.drawKeypoints(np.zeros(test_img.shape).astype('uint8'), keypoints, np.zeros((1,1)), (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+    blobsseg, blobsgray = obj_segmentation(blobs, color_mask)
+    if visualize:        
+        cv2.imshow('seg', blobsseg)
+    return blobsseg
 
 
-
+keypoints = best_fit_keypoints(test_img, 25, 30)
+# visualizer(test_img, keypoints)
+keypoints_on_foot = find_marker(keypoints, 1)    
 
 
 
