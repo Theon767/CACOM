@@ -19,8 +19,8 @@ from os.path import join, isdir
 import cv2 as cv
 import shutil
 
-v_path = "/home/kolz14w/下载/2022_07_06_13_09_IMG_4237.MOV"
-i_path = "/home/kolz14w/桌面/frames_0"
+v_path = "/home/kolz14w/下载/2022_07_06_14_08_IMG_4272.MOV"
+i_path = "/home/kolz14w/桌面/frames_2"
 
 def img_normalizer(img):
     standard_dim = [853, 480]   # size is proportional to the resolution of camera
