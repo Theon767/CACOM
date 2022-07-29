@@ -30,7 +30,7 @@ And then, CONGRADULATIONS! You have completed all setups, now you can enjoy your
 Author: Shuang Wang, Wei Zhou, Yan Gao, Kaicheng Ni, Yiming Shan, Zechen Wang (in NO particular order)
 
 """
-test_path="/home/kolz14w/桌面/frames_0/frame0360.jpg"
+test_path="/home/kolz14w/桌面/frames_0"
 
 
 from matplotlib import pyplot as plt
@@ -48,6 +48,7 @@ from detectron2.structures import BoxMode
 import pycocotools.mask as coco_mask
 from detectron2.config import get_cfg
 import os
+import time
 
 # Visualizer packages
 from matplotlib import pyplot as plt
@@ -400,12 +401,12 @@ def obj_segmentation(img, mask):
     gray_img = cv2.cvtColor(seg_img * 255.0, cv2.COLOR_BGR2GRAY).astype('uint8')
     return seg_img, gray_img
     
-test_img = cv2.imread(test_path)
+# test_img = cv2.imread(test_path)
 
-color_mask = color_mask_gen(test_img, det).astype('float32')
-seg_img, gray_img = obj_segmentation(test_img, color_mask)
+# color_mask = color_mask_gen(test_img, det).astype('float32')
+# seg_img, gray_img = obj_segmentation(test_img, color_mask)
 
-plt.imshow(seg_img)
+# plt.imshow(seg_img)
 
 # find best parameters for blob
 def best_fit_keypoints(img, max_minArea, num_points):
@@ -450,8 +451,8 @@ def visualizer(img, keypoints):
         cv2.destroyAllWindows()
 
 # draw point distribution on foot
-def find_marker(keypoints, visualize = True):
-    blobs = cv2.drawKeypoints(np.zeros(test_img.shape).astype('uint8'), keypoints, np.zeros((1,1)), (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
+def find_marker(keypoints, color_mask, visualize = True):
+    blobs = cv2.drawKeypoints(np.zeros([480, 853]).astype('uint8'), keypoints, np.zeros((1,1)), (0, 0, 255),cv2.DRAW_MATCHES_FLAGS_DRAW_RICH_KEYPOINTS)
     blobsseg, blobsgray = obj_segmentation(blobs, color_mask)
     if visualize:        
         cv2.imshow('seg', blobsseg)
@@ -460,11 +461,11 @@ def find_marker(keypoints, visualize = True):
             cv2.destroyAllWindows()
     return blobsseg, blobsgray
 
-keypoints = best_fit_keypoints(test_img, 25, 30)
+# keypoints = best_fit_keypoints(test_img, 25, 30)
 # visualizer(test_img, keypoints)
 
 # Extract point on/NEAR foot 
-keypoints_on_foot, keypoints_on_foot_gray = find_marker(keypoints, 1)    
+# keypoints_on_foot, keypoints_on_foot_gray = find_marker(keypoints, 1)    
 
 # # Training set preparation for classifier
 # file_path = "/home/kolz14w/桌面/frames_0"
@@ -472,10 +473,25 @@ keypoints_on_foot, keypoints_on_foot_gray = find_marker(keypoints, 1)
 # ## Initialize image list
 def img_reader(file_path):
     imgs_path = []
-    files = os.li00stdir(file_path)
-    for f in files:
-        if f.endswith(".jpg"):
-            imgs_path.append(f)
+    imgs_path = os.listdir(file_path)
+    # for f in files:
+    #     if f.endswith(".jpg"):
+    #         imgs_path.append(f)
+    
+    imgs_reordered = []
+    idx_original = []
+    for img_path in imgs_path:
+        frame_idx = int(img_path[-8:-4])
+        idx_original.append(frame_idx)
+    idx_reordered = []
+    for i in range(len(idx_original)):
+        idx_current_frame = idx_original.index(min(idx_original))
+        current_frame = imgs_path[idx_current_frame]
+        imgs_reordered.append(current_frame)
+        idx_original[idx_current_frame] = 10000
+        idx_reordered.append(idx_current_frame)
+        
+    return imgs_reordered
 
 ######### Output the coordinate of the extracted points ###########
 
@@ -492,21 +508,42 @@ def coord_localizer(keypoints_on_foot_bool, minArea=20):
         classes_mean.append(curr_class_mean)
         # index[index == near_point] = 0
     return classes_mean
-        
-keypoints_on_foot_TF = keypoints_on_foot_gray != 0
 
-plt.imshow(keypoints_on_foot_TF)
+# keypoints_on_foot_TF = keypoints_on_foot_gray != 0
+# plt.imshow(keypoints_on_foot_TF)
 
-marker_pos = coord_localizer(keypoints_on_foot_TF)
-
-test_background = np.zeros(keypoints_on_foot_TF.shape)
-for point in marker_pos:
-    test_background[point[0],point[1]] = 1
+def test_on_black_bg(keypoints_on_foot_TF):
+    marker_pos = coord_localizer(keypoints_on_foot_TF)
     
-plt.imshow(test_background)
+    test_background = np.zeros(keypoints_on_foot_TF.shape)
+    for point in marker_pos:
+        test_background[point[0],point[1]] = 1
+        
+    plt.imshow(test_background)
 
 
-
-
-
-
+if __name__ == "__main__":
+    
+    start_frame = 250
+    end_frame = 510
+    
+    imgs_reordered = img_reader(test_path)
+    markerAllFrame = []
+    for img in imgs_reordered:
+        if int(img[-8:-4]) < start_frame:
+            continue
+        start = time.time()
+        img_mat = cv2.imread(os.path.join(test_path,img))
+        colormask = color_mask_gen(img_mat, det)
+        keypoints = best_fit_keypoints(img_mat, 25, 30)
+        keypoints_on_foot, keypoints_on_foot_gray = find_marker(keypoints, colormask, visualize=0)
+        keypoints_on_foot_TF = (keypoints_on_foot_gray != 0)
+        marker_list = coord_localizer(keypoints_on_foot_TF)
+        marker_pos = []
+        [marker_pos.append(marker) for marker in marker_list if marker not in marker_pos]
+        markerAllFrame.append(marker_pos)
+        end = time.time()
+        print("Current frame is %s." % img, "Corresponding processing time is: %f s" % (end - start))
+        
+        if int(img[-8:-4]) > end_frame:
+            break
