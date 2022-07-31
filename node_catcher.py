@@ -30,7 +30,7 @@ And then, CONGRADULATIONS! You have completed all setups, now you can enjoy your
 Author: Shuang Wang, Wei Zhou, Yan Gao, Kaicheng Ni, Yiming Shan, Zechen Wang (in NO particular order)
 
 """
-test_path="/home/kolz14w/桌面/frames_0"
+test_path="/home/kolz14w/桌面/frames"
 
 
 from matplotlib import pyplot as plt
@@ -49,6 +49,7 @@ import pycocotools.mask as coco_mask
 from detectron2.config import get_cfg
 import os
 import time
+import csv
 
 # Visualizer packages
 from matplotlib import pyplot as plt
@@ -86,9 +87,9 @@ def Init_Save_Cfg(**kwargs):
     else:
         cfg.MODEL.WEIGHTS = default_model_path
     cfg.SOLVER.IMS_PER_BATCH = 2
-    cfg.SOLVER.BASE_LR = 0.0005
-    cfg.SOLVER.MAX_ITER = 1000 # 300 iterations seems good enough, but you can certainly train longer
-    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 64   # faster, and good enough for this toy dataset
+    cfg.SOLVER.BASE_LR = 0.00015
+    cfg.SOLVER.MAX_ITER = 5000 # 300 iterations seems good enough, but you can certainly train longer
+    cfg.MODEL.ROI_HEADS.BATCH_SIZE_PER_IMAGE = 32   # 64 is faster, and good enough for this toy dataset
     if 'num_categories' in kwargs.keys():
         cfg.MODEL.ROI_HEADS.NUM_CLASSES = kwargs['num_categories']
     else:
@@ -260,10 +261,10 @@ def data_reg(dataset_name, dataset_path):
     DatasetCatalog.clear()
     MetadataCatalog.clear()
     DatasetCatalog.register(dataset_name, partial(dexycb_hand_seg_func_mivos,
-                                                 num_samples = 20,
+                                                 num_samples = 34,
                                                  ignore_background=True,
                                                  data_dir = dataset_path,
-                                                 step_size = 3))
+                                                 step_size = 1))
 
 class Detectron2Wrapper:
     
@@ -349,11 +350,11 @@ def Model_training(cfg):
     trainer.train()
     return trainer
 
-# data_reg("Mivos", '/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset')
+data_reg("Mivos", '/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset')
 
-# print('Training start.')
+print('Training start.')
 
-# Model_training(cfg)
+Model_training(cfg)
 
 if 'det' in locals().keys():
     print('Detectron2Wrapper is already initialized')
@@ -512,10 +513,14 @@ def coord_localizer(keypoints_on_foot_bool, minArea=20):
 # keypoints_on_foot_TF = keypoints_on_foot_gray != 0
 # plt.imshow(keypoints_on_foot_TF)
 
-def test_on_black_bg(keypoints_on_foot_TF):
-    marker_pos = coord_localizer(keypoints_on_foot_TF)
+def test_on_black_bg(keypoints_on_foot_TF, approx = 1):
+    if approx:
+        marker_pos = coord_localizer(keypoints_on_foot_TF)
+        test_background = np.zeros(keypoints_on_foot_TF.shape)
+    else:
+        marker_pos = np.copy(keypoints_on_foot_TF)
+        test_background = np.zeros([480, 853])
     
-    test_background = np.zeros(keypoints_on_foot_TF.shape)
     for point in marker_pos:
         test_background[point[0],point[1]] = 1
         
@@ -524,9 +529,12 @@ def test_on_black_bg(keypoints_on_foot_TF):
 
 if __name__ == "__main__":
     
-    start_frame = 250
-    end_frame = 510
-    
+    start_frame = 150
+    end_frame = start_frame + 300
+    total_time = 0
+    write_to_csv = True
+    name_modified = "Shan"
+
     imgs_reordered = img_reader(test_path)
     markerAllFrame = []
     for img in imgs_reordered:
@@ -544,6 +552,14 @@ if __name__ == "__main__":
         markerAllFrame.append(marker_pos)
         end = time.time()
         print("Current frame is %s." % img, "Corresponding processing time is: %f s" % (end - start))
+        total_time += (end-start)
         
         if int(img[-8:-4]) > end_frame:
+            print("Total processing time: %f s." % total_time)
             break
+                
+    if write_to_csv:
+        with open('marker_xtraction_' + name_modified + '.csv', 'w') as f:
+            write = csv.writer(f)
+            write.writerows(markerAllFrame)
+    
