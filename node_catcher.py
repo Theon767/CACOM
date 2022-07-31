@@ -350,11 +350,11 @@ def Model_training(cfg):
     trainer.train()
     return trainer
 
-data_reg("Mivos", '/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset')
+# data_reg("Mivos", '/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset')
 
-print('Training start.')
+# print('Training start.')
 
-Model_training(cfg)
+# Model_training(cfg)
 
 if 'det' in locals().keys():
     print('Detectron2Wrapper is already initialized')
