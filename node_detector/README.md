@@ -24,6 +24,7 @@ In this project, all parts are written in language `PYTHON`.
 ```
 
 ## To run this code, you have to...
+### 0) have a graphic card with memory at least 2GB for CNN processing.
 
 ### 1) Set up the environment for the DNN model. (Copyright by @Yuankai_Wu)
 
