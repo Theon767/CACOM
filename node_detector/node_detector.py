@@ -30,8 +30,15 @@ And then, CONGRADULATIONS! You have completed all setups, now you can enjoy your
 Author: Shuang Wang, Wei Zhou, Yan Gao, Kaicheng Ni, Yiming Shan, Zechen Wang (in NO particular order)
 
 """
+
+#################################### Path modification ################################################
+
+dataset_path = '/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset'      # For training/fine-tuning the model
+cfg_path = '/home/kolz14w/Proj_Master/CAOCM/CACOM/cfgCAOCM.yaml'
+model_path = "/home/kolz14w/Proj_Master/CAOCM/CACOM/output/model_final.pth"
 test_path="/home/kolz14w/桌面/frames"
 
+#######################################################################################################
 
 from matplotlib import pyplot as plt
 from functools import partial
@@ -324,17 +331,6 @@ def eval_mivos(input_image, original_mask, det):
         plt.show()
         
     # return pred_mask, orig_mask_array
-if 'cfg' in dir():
-    print('Configuration has been initialized!')
-    print("Skip configuration settings!")
-else:
-    print("Start initializing configuration for Detectron2")
-    cfg = Init_Save_Cfg(# cfg_path="/home/kolz14w/haucode/hw2/cfghw2_2_jup.yaml",
-                        model_path = "/home/kolz14w/Proj_Master/CAOCM/CACOM/output/model_final.pth",
-                        num_categories=1)
-
-# cfg = get_cfg()
-# cfg.merge_from_file('cfghw2_2_jup.yaml')
 
 # Set expected object classes
 OBJ_CLASSES = {
@@ -350,38 +346,10 @@ def Model_training(cfg):
     trainer.train()
     return trainer
 
-# data_reg("Mivos", '/home/kolz14w/Proj_Master/CAOCM/CACOM/dataset')
 
-# print('Training start.')
-
-# Model_training(cfg)
-
-if 'det' in locals().keys():
-    print('Detectron2Wrapper is already initialized')
-else:
-    print('Initializing Detectron2Wrapper.')    
-    det = Detectron2Wrapper(# cfg_path="/home/kolz14w/Proj_Master/haucode/hw2/cfghw2_2_jup.yaml",
-                            model_path = "/home/kolz14w/Proj_Master/CAOCM/CACOM/output/model_final.pth"
-                            )
-
-# print('Initializing Visualizer.')
-
-# init_visualizer(det, test_path)
-
-
-
-# ############################ compare the difference ###########################
-
-# img_test = cv2.imread('mask_rcnn/Mivos_cus/images/frame0006.jpg')
-# mask_test = cv2.imread('mask_rcnn/Mivos_cus/mask/00006.png')
-
-# eval_mivos(img_test, mask_test, det)
-
-
-############################## Mask Processing
+############################## Mask Processing ##################################
 
 # mask for color image generation
-
 def color_mask_gen(input_img, det):
     mask, classes = det.process(input_img)
     color_mask = np.zeros(np.hstack([mask.shape[1:],[3]]))
@@ -397,17 +365,11 @@ def color_mask_gen(input_img, det):
     
     return color_mask
 
+# Segmentation by using the generated mask
 def obj_segmentation(img, mask):
     seg_img = (img * mask).astype('float32') / 255.0
     gray_img = cv2.cvtColor(seg_img * 255.0, cv2.COLOR_BGR2GRAY).astype('uint8')
     return seg_img, gray_img
-    
-# test_img = cv2.imread(test_path)
-
-# color_mask = color_mask_gen(test_img, det).astype('float32')
-# seg_img, gray_img = obj_segmentation(test_img, color_mask)
-
-# plt.imshow(seg_img)
 
 # find best parameters for blob
 def best_fit_keypoints(img, max_minArea, num_points):
@@ -461,15 +423,6 @@ def find_marker(keypoints, color_mask, visualize = True):
         if key == 27: # kill image by pressing escape
             cv2.destroyAllWindows()
     return blobsseg, blobsgray
-
-# keypoints = best_fit_keypoints(test_img, 25, 30)
-# visualizer(test_img, keypoints)
-
-# Extract point on/NEAR foot 
-# keypoints_on_foot, keypoints_on_foot_gray = find_marker(keypoints, 1)    
-
-# # Training set preparation for classifier
-# file_path = "/home/kolz14w/桌面/frames_0"
 
 # ## Initialize image list
 def img_reader(file_path):
@@ -529,12 +482,49 @@ def test_on_black_bg(keypoints_on_foot_TF, approx = 1):
 
 if __name__ == "__main__":
     
+    ### Parametrize your analyzing process.
     start_frame = 150
-    end_frame = start_frame + 300
+    frame_between_start_end = 30
+    end_frame = start_frame + frame_between_start_end
     total_time = 0
+    #### If True, write the final result to CSV file
     write_to_csv = True
+    #### If True, train model on the registered data
+    model_fine_tuning = False
+    #### csv file name
     name_modified = "Shan"
 
+    
+    # Initialization of cfg file for DNNmodel
+    if 'cfg' in dir():
+        print('Configuration has been initialized!')
+        print("Skip configuration settings!")
+    else:
+        print("Start initializing configuration for Detectron2")
+        cfg = Init_Save_Cfg(# cfg_path="/home/kolz14w/haucode/hw2/cfghw2_2_jup.yaml",
+                            model_path = model_path,
+                            num_categories=1)
+    
+    # If you have a cfg file already, uncomment the following 2 lines
+    # cfg = get_cfg()
+    # cfg.merge_from_file(cfg_path)
+    ################### For fine-tuning the model on your own dataset uncomment following 3 lines ####################
+    
+    if model_fine_tuning:            
+        data_reg("Mivos", dataset_path)    
+        print('Training start.')
+        Model_training(cfg)
+    
+    ##################################################################################################################
+    
+    # Initialization of Detectron2wrapper
+    if 'det' in locals().keys():
+        print('Detectron2Wrapper is already initialized')
+    else:
+        print('Initializing Detectron2Wrapper.')    
+        det = Detectron2Wrapper(cfg_path=cfg_path,
+                                model_path=model_path)
+    
     imgs_reordered = img_reader(test_path)
     markerAllFrame = []
     for img in imgs_reordered:
@@ -559,7 +549,7 @@ if __name__ == "__main__":
             break
                 
     if write_to_csv:
-        with open('marker_xtraction_' + name_modified + '.csv', 'w') as f:
+        with open('marker_extraction_' + name_modified + '.csv', 'w') as f:
             write = csv.writer(f)
             write.writerows(markerAllFrame)
     
